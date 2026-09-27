@@ -1,0 +1,19 @@
+# Secrets — never commit API keys
+.env
+
+# Local environments and caches
+.venv/
+__pycache__/
+*.pyc
+.cache/
+.pytest_cache/
+
+# Large or derived artefacts pulled in from other projects
+index/
+papers/
+*.pdf
+*.docx
+
+# OS noise
+.DS_Store
+Thumbs.db

@@ -1,0 +1,8 @@
+# Tooling layer of the research agent.
+# faiss-cpu + sentence-transformers are only needed by the search_literature tool;
+# they are already present in the sofc-rag environment this project reuses.
+faiss-cpu>=1.8
+sentence-transformers>=3.0
+numpy>=1.26
+requests>=2.31
+PyYAML>=6.0

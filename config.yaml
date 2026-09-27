@@ -1,0 +1,37 @@
+# Configuration for the SOFC research agent.
+# Only paths and knobs live here — no secrets (those go in .env).
+
+paths:
+  # Existing literature RAG project. Its FAISS index and chunk metadata are read
+  # directly (index/chunks.faiss + index/chunks.jsonl); nothing is rebuilt here.
+  rag_root: "C:/Users/DELL/Desktop/sofc-rag"
+
+  # Extracted experimental dataset: one row per reported composition/measurement.
+  dataset_csv: "C:/Users/DELL/Desktop/LLM fc/results/dataset.csv"
+
+literature:
+  # Must match the model used to build the index, or the vectors are meaningless.
+  embed_model: "sentence-transformers/all-MiniLM-L6-v2"
+  default_k: 5
+  max_k: 20
+  snippet_words: 60
+
+dataset:
+  # A measurement at 598 C answers a question about 600 C.
+  default_temperature_tolerance_C: 25.0
+  default_limit: 25
+  max_limit: 100
+
+materials_project:
+  base_url: "https://api.materialsproject.org"
+  api_key_env: "MP_API_KEY"
+  timeout_s: 30
+  # Polymorphs to pull per formula before picking the most stable one.
+  candidate_limit: 10
+
+agent:
+  # Local model that decides which tool to call. Must be an installed Ollama tag.
+  model: "qwen2.5:3b-instruct"
+  ollama_url: "http://127.0.0.1:11434"
+  temperature: 0.0
+  num_ctx: 8192
