@@ -1,0 +1,8 @@
+{
+  "model": "qwen2.5:3b-instruct",
+  "ollama_version": "0.34.4",
+  "hardware": "11th Gen Intel(R) Core(TM) i5-1145G7 @ 2.60GHz, 8 threads, model on CPU only",
+  "max_tool_calls": 5,
+  "warmup_s": 30.9,
+  "finished": "2026-09-28 17:48"
+}

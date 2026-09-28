@@ -1,0 +1,112 @@
+id,category,expected_tools,expected_behavior,tools_called,first_tool,tool_match,first_tool_match,extra_tools,n_tool_calls,cites_source,n_cited_sources,n_invalid_citations,not_found,answer_correct,ungrounded_numbers,nudged,repaired,stop_reason,llm_calls,prompt_tokens,completion_tokens,time_s,question,answer,error
+q01,single,search_literature,answer,search_literature,search_literature,yes,yes,,1,yes,3,0,no,yes,,no,no,answered,2,2850,189,53.2,"According to the papers, what mechanism explains the high ionic conductivity of ceria-carbonate composite electrolytes?","The mechanism explaining the high ionic conductivity of ceria-carbonate composite electrolytes involves the creation of highly conducting interfaces between ceria and carbonate phases. [Electrochemical study on co-doped ceria–carbonate composite electrolyte, p.1] suggests that the enhancement effect of forming the composite is related to creating highly conducting interfaces. Additionally, [Electrochemical study on co-doped ceria–carbonate composite electrolyte, p.5] indicates that the composite electrolyte, especially the CSDC–Na2CO3, exhibits the best ionic conductivity due to the co-doping and composite effects, which create interfaces between ceria and carbonate. [Recent advancement of solid oxide fuel cells towards semiconductor membrane fuel cells, p.17] also mentions the presence of localized electrons within the ceria lattice, which are unable to travel from one particle of ceria to the other due to the amorphous carbonate shell, highlighting the importance of interfaces in conductivity.
+
+Sources:
+- Electrochemical study on co-doped ceria–carbonate composite electrolyte, p.1 (8.pdf, DOI 10.1016/j.jpowsour.2011.10.124)
+- Electrochemical study on co-doped ceria–carbonate composite electrolyte, p.5 (8.pdf, DOI 10.1016/j.jpowsour.2011.10.124)
+- Recent advancement of solid oxide fuel cells towards semiconductor membrane fuel cells, p.17 (35.pdf, DOI 10.20517/energymater.2023.54)",
+q02,single,search_literature,answer,search_literature,search_literature,yes,yes,,1,yes,3,0,no,yes,,no,no,answered,2,2948,142,30.6,"What is a semiconductor membrane fuel cell, as described in the literature?","Recent advancements in solid oxide fuel cells have introduced semiconductor membrane fuel cells. [Recent advancement of solid oxide fuel cells towards semiconductor membrane fuel cells, p.5] describes these as devices where amphoteric oxide semiconductor cathodes and anodes are separated by an ionic conducting electrolyte, which possess properties similar to intrinsic semiconductors. [Recent advancement of solid oxide fuel cells towards semiconductor membrane fuel cells, p.21] elaborates on the use of semiconductor junction devices in these fuel cells, which can be used as a single semiconductor in SJ-based fuel cells. [Advancements in Solid Oxide Fuel Cell Technology: Bridging Performance Gaps for Enhance..., p.27] provides additional context by mentioning the comparison of different fuel cell technologies, including semiconductor membrane fuel cells.
+
+Sources:
+- Recent advancement of solid oxide fuel cells towards semiconductor membrane fuel cells, p.5 (35.pdf, DOI 10.20517/energymater.2023.54)
+- Recent advancement of solid oxide fuel cells towards semiconductor membrane fuel cells, p.21 (35.pdf, DOI 10.20517/energymater.2023.54)
+- Advancements in Solid Oxide Fuel Cell Technology: Bridging Performance Gaps for Enhance..., p.27 (33.pdf, DOI 10.1002/aesr.202400132)",
+q03,single,search_literature,answer,search_literature,search_literature,yes,yes,,1,yes,5,0,no,yes,,no,no,answered,2,3352,178,44.9,"How has machine learning been used in solid oxide fuel cell research, according to the papers?","Machine learning has been used in solid oxide fuel cell (SOFC) research to predict the performance of SOFCs. [Performance Analysis of Anode-Supported Solid Oxide Fuel Cells: A Machine Learning Appr..., p.1] discusses the use of machine learning to predict the performance of anode-supported SOFCs based on architectural and operational variables. [Performance Analysis of Anode-Supported Solid Oxide Fuel Cells: A Machine Learning Appr..., p.24] further elaborates on the use of machine learning for predicting the output voltage of an anode-supported SOFC, highlighting its accuracy and cost-effectiveness. Additionally, [TOPOLOGY -I NFORMED MACHINE LEARNING FOR EFFICIENT PREDICTION OF SOLID OXIDE FUEL CELL ..., p.16] and [TOPOLOGY -I NFORMED MACHINE LEARNING FOR EFFICIENT PREDICTION OF SOLID OXIDE FUEL CELL ..., p.1] mention the application of machine learning in improving the polarization curves of solid oxide fuel cells and in the modeling of fuel cell electrodes, respectively. [IFAC PapersOnLine 58-28 (2024) 935–940 ScienceDirect ScienceDirect Available online at ..., p.5] provides a comparative study of feature selection techniques in machine learning for SOFCs.
+
+Sources:
+- Performance Analysis of Anode-Supported Solid Oxide Fuel Cells: A Machine Learning Appr..., p.1 (26.pdf, DOI 10.3390/ma15217760)
+- Performance Analysis of Anode-Supported Solid Oxide Fuel Cells: A Machine Learning Appr..., p.24 (26.pdf, DOI 10.3390/ma15217760)
+- TOPOLOGY -I NFORMED MACHINE LEARNING FOR EFFICIENT PREDICTION OF SOLID OXIDE FUEL CELL ..., p.16 (27.pdf)
+- TOPOLOGY -I NFORMED MACHINE LEARNING FOR EFFICIENT PREDICTION OF SOLID OXIDE FUEL CELL ..., p.1 (27.pdf)
+- IFAC PapersOnLine 58-28 (2024) 935–940 ScienceDirect ScienceDirect Available online at ..., p.5 (24.pdf, DOI 10.1016/j.ifacol.2025.01.116)",
+q04,single,search_literature,answer,search_literature,search_literature,yes,yes,,1,yes,4,6,no,no,,no,no,answered,2,3359,379,70.0,What role does the amorphous carbonate shell play in carbonate@ceria core-shell nanocomposites?,"The role of the amorphous carbonate shell in carbonate@ceria core-shell nanocomposites is discussed in several papers. [Functional ceria-based nanocomposites for advanced low-temperature (300-600 °C) solid o..., p.5] mentions that the carbonate shell in these nanocomposites is amorphous and contributes to the core-shell structure where the core is SDC and the shell is the carbonate. [The effect of alkali-carbonates (single, binary, and ternary) on doped ceria, a composi..., p.32] and [Study on Nanocomposites Based on Carbonate @ Ceria, p.3] also discuss the formation of carbonate@ceria nanocomposites and the effect of carbonate on the structure of doped ceria. [The effect of alkali-carbonates (single, binary, and ternary) on doped ceria, a composi..., p.7] further explains that the amorphous carbonate shell acts as a protective layer over the SDC phase, which is formed during heat treatment. [unverified source] provides a review on the role of carbonate phase in ceria-based nanocomposites for low-temperature SOFCs. [The effect of alkali-carbonates (single, binary, and ternary) on doped ceria, a composi..., p.32] and [unverified source] also mention that the carbonate phase can be in the form of single, binary, or ternary compounds. [unverified source] also notes that the crystal structure factor of the carbonate phase and SDC is different, and that a large portion of carbonates may be in the amorphous phase. [unverified source] further mentions that the amorphous structure of carbonates is formed during heat treatment, creating a protective layer over the SDC phase. [unverified source] also mentions that this protective layer is known as the second phase. [unverified source] and [The effect of alkali-carbonates (single, binary, and ternary) on doped ceria, a composi..., p.32] suggest that the amorphous carbonate shell can improve the electrochemical performance of the nanocomposite as an electrolyte for SOFCs.
+
+Sources:
+- Functional ceria-based nanocomposites for advanced low-temperature (300-600 °C) solid o..., p.5 (1.pdf, DOI 10.1016/j.mtener.2019.100373)
+- The effect of alkali-carbonates (single, binary, and ternary) on doped ceria, a composi..., p.32 (11.pdf, DOI 10.1021/acsami.7b17010)
+- Study on Nanocomposites Based on Carbonate @ Ceria, p.3 (9.pdf, DOI 10.1166/jnn.2010.1857)
+- The effect of alkali-carbonates (single, binary, and ternary) on doped ceria, a composi..., p.7 (11.pdf, DOI 10.1021/acsami.7b17010)",
+q05,single,search_literature,decline,search_literature,search_literature,yes,yes,,1,no,0,0,yes,yes,,yes,no,nothing_to_cite,3,3499,52,8.5,What melting point do the papers report for gold nanoparticles?,"The available tools do not contain this information.
+
+What the tools returned:
+- search_literature: 3 passages for 'melting point gold nanoparticles'; best match [The effect of alkali-carbonates (single, binary, and ternary) on doped ceria, a composi..., p.20] (score 0.428), corpus size 1701 chunks.",
+q06,single,query_dataset,answer,query_dataset,query_dataset,yes,yes,,1,yes,1,0,no,yes,,no,no,answered,2,2860,101,26.0,"Which Sm-doped ceria-carbonate composite in the dataset has the highest conductivity at 600 C, and what is the value?","The Sm-doped ceria-carbonate composite with the highest conductivity at 600 C is LN-SDC ((Li/Na)2CO3-SDC binary carbonate) with a conductivity value of 0.31 S/cm. [ref11_LN-SDC]
+
+Sources:
+- ref11_LN-SDC: Ali, Raza et al. 2018, ACS Appl. Mater. Interfaces (DOI 10.1021/acsami.7b17010) (extracted dataset)",
+q07,single,query_dataset,answer,query_dataset,query_dataset,yes,yes,,1,yes,1,0,no,no,,no,no,answered,2,2721,137,27.1,What conductivities were measured for Al-doped ceria electrolytes without any carbonate phase?,"Conductivities for Al-doped ceria electrolytes without any carbonate phase were measured at 500°C. The highest conductivity measured was 0.18 S/cm for the composition 30ADC (Al0.3Ce0.7O2) [ref04_30ADC]. The highest peak power density was 923 mW/cm² for the same composition [ref04_30ADC].
+
+Sources:
+- ref04_30ADC: Sarfraz et al. 2024, Int. J. Miner. Metall. Mater. 31(10):2253 (extracted dataset)",
+q08,single,query_dataset,answer,query_dataset,query_dataset,yes,yes,,1,yes,1,0,no,yes,,no,no,answered,2,2509,90,15.4,What activation energy is reported for the LNK-SDC composite with the ternary (Li/Na/K)2CO3 carbonate?,"The activation energy reported for the LNK-SDC composite with the ternary (Li/Na/K)2CO3 carbonate is [ref11_LN-SDC] 0.51 eV.
+
+Sources:
+- ref11_LN-SDC: Ali, Raza et al. 2018, ACS Appl. Mater. Interfaces (DOI 10.1021/acsami.7b17010) (extracted dataset)",
+q09,single,query_dataset,answer,query_dataset,query_dataset,yes,yes,,1,yes,1,0,no,no,,no,no,answered,2,2940,135,32.0,"What peak power density was reported for the NK-CDC composite, calcium-doped ceria with a Na2CO3:K2CO3 coating?","The peak power density reported for the NK-CDC composite, calcium-doped ceria with a Na2CO3:K2CO3 coating is 980 mW/cm² at 560°C. This value is from the paper [ref07_CSDC].
+
+Sources:
+- ref07_CSDC: Raza et al. 2010, J. Power Sources 195:6491 (extracted dataset)",
+q10,single,query_dataset,decline,query_dataset,query_dataset,yes,yes,,1,no,0,0,yes,yes,,no,no,nothing_to_cite,2,2377,50,8.3,What ionic conductivity does the dataset report for gadolinium-doped ceria (GDC)?,"The available tools do not contain this information.
+
+What the tools returned:
+- query_dataset: No rows match {'dopant': 'Gd', 'carbonate': 'none'} (dataset has 25 rows). Separately: dopant 'Gd' alone matches 0 row(s); carbonate 'none' alone matches 4 row(s). Remove the filter that excludes everything and ask again.",
+q11,single,arrhenius,answer,arrhenius,arrhenius,yes,yes,,1,yes,1,0,no,yes,,no,no,answered,2,2537,121,18.1,"Calculate the activation energy from these measurements: 0.013 S/cm at 400 C, 0.028 S/cm at 450 C, 0.055 S/cm at 500 C, 0.10 S/cm at 550 C and 0.17 S/cm at 600 C.","The activation energy from the provided conductivity measurements is [Arrhenius fit] 0.7170 eV (69.2 kJ/mol).
+
+Sources:
+- Arrhenius fit: computed from the supplied conductivity data - Ea = 0.7170 eV (69.2 kJ/mol) from 5 points over 400-600 C, ln(sigma*T) vs 1/T, r^2 = 0.9999.",
+q12,single,arrhenius,answer,arrhenius,arrhenius,yes,yes,,1,yes,1,0,no,yes,,no,no,answered,2,2466,88,14.7,"A composite electrolyte has conductivities of 0.02, 0.05 and 0.11 S/cm at 773 K, 823 K and 873 K. What is its activation energy in eV?","The activation energy for the composite electrolyte is [Arrhenius fit] 1.0623 eV.
+
+Sources:
+- Arrhenius fit: computed from the supplied conductivity data - Ea = 1.0623 eV (102.5 kJ/mol) from 3 points over 500-600 C, ln(sigma*T) vs 1/T, r^2 = 1.0000.",
+q13,single,arrhenius,answer,arrhenius,arrhenius,yes,yes,,1,yes,1,0,no,yes,,no,no,answered,2,2464,123,18.1,"Using the ln(sigma) versus 1/T convention (no T prefactor), what activation energy follows from 0.01 S/cm at 500 C and 0.04 S/cm at 600 C?","The activation energy that follows from 0.01 S/cm at 500 C and 0.04 S/cm at 600 C, using the ln(sigma) versus 1/T convention, is [Arrhenius fit] Ea = 0.8065 eV (77.8 kJ/mol).
+
+Sources:
+- Arrhenius fit: computed from the supplied conductivity data - Ea = 0.8065 eV (77.8 kJ/mol) from 2 points over 500-600 C, ln(sigma) vs 1/T, r^2 = 1.0000.",
+q14,single,arrhenius,answer,arrhenius,arrhenius,yes,yes,,1,yes,1,0,no,yes,,no,no,answered,2,2487,104,15.2,"Fit an Arrhenius activation energy to 0.035 S/cm at 500 C, 0.062 S/cm at 550 C and 0.10 S/cm at 600 C, and give it in eV and kJ/mol.","The activation energy for the given conductivity data is [Arrhenius fit] 0.6818 eV (65.8 kJ/mol).
+
+Sources:
+- Arrhenius fit: computed from the supplied conductivity data - Ea = 0.6818 eV (65.8 kJ/mol) from 3 points over 500-600 C, ln(sigma*T) vs 1/T, r^2 = 0.9998.",
+q15,single,arrhenius,decline,arrhenius,arrhenius,yes,yes,,1,no,0,0,yes,yes,,no,no,nothing_to_cite,2,2351,59,9.7,What is the activation energy of an electrolyte whose conductivity is 0.05 S/cm at 600 C?,"The available tools do not contain this information.
+
+What the tools returned:
+- arrhenius: error: need at least 2 points to fit a slope, got 1",
+q16,single,materials_project,answer,materials_project,materials_project,yes,yes,,1,yes,1,0,no,yes,,no,no,answered,2,2445,152,21.6,"Is CeO2 thermodynamically stable according to the Materials Project, and what is its band gap?","[Materials Project mp-aaaabdws] CeO2 is thermodynamically stable at 0 K with a band gap of 2.003 eV. The formation energy is -3.9272 eV/atom, and the energy above the convex hull is 0 eV/atom. Less stable polymorphs include P4_2/mnm with an energy above the hull of +0.1193 eV/atom, P6_3/mmc with +0.4294 eV/atom, and I4/mmm with +0.7675 eV/atom.
+
+Sources:
+- Materials Project mp-aaaabdws: CeO2 Fm-3m (https://materialsproject.org/materials/mp-aaaabdws)",
+q17,single,materials_project,answer,materials_project,materials_project,yes,yes,,1,yes,1,0,no,yes,,no,no,answered,2,2433,49,11.1,What band gap does the Materials Project give for Na2CO3?,"The Materials Project gives Na2CO3 a band gap of 5.235 eV. [Materials Project mp-aaacqirj]
+
+Sources:
+- Materials Project mp-aaacqirj: Na2CO3 P2_1/c (https://materialsproject.org/materials/mp-aaacqirj)",
+q18,single,materials_project,answer,materials_project,materials_project,yes,yes,,1,yes,1,0,no,yes,,yes,no,answered,3,3660,242,29.7,What is the space group of the most stable Sm2O3 structure in the Materials Project?,"The most stable structure of Sm2O3 in the Materials Project database is in the space group Ia-3 (Cubic). This structure is on the convex hull and is thermodynamically stable at 0 K. The band gap for this structure is 3.782 eV, which is an indirect band gap calculated using Density Functional Theory (DFT) with a Generalized Gradient Approximation (GGA) method. The formation energy for Sm2O3 is -3.862 eV/atom, and the energy above the convex hull is 0 eV/atom. Less stable polymorphs include C2/m with an energy increase of 0.0137 eV/atom, P-3m1 with 0.017 eV/atom, P-4m2 with 0.2158 eV/atom, and Pn-3m with 0.4492 eV/atom. [Materials Project mp-aaaaaaik]
+
+Sources:
+- Materials Project mp-aaaaaaik: Sm2O3 Ia-3 (https://materialsproject.org/materials/mp-aaaaaaik)",
+q19,single,materials_project,answer,materials_project,materials_project,yes,yes,,1,yes,1,0,no,yes,,no,no,answered,2,2414,63,11.2,"Is Li2CO3 on the convex hull in the Materials Project, and what is its band gap?","Li2CO3 is on the convex hull in the Materials Project and its band gap is 5.057 eV. The stability and formation energy information is from [Materials Project mp-aaaaaenm].
+
+Sources:
+- Materials Project mp-aaaaaenm: Li2CO3 C2/c (https://materialsproject.org/materials/mp-aaaaaenm)",
+q20,single,materials_project,decline,materials_project,materials_project,yes,yes,,1,no,0,0,yes,yes,,no,no,nothing_to_cite,2,2363,91,12.1,What band gap does the Materials Project report for the doped composition Ce0.8Sm0.2O2?,"The available tools do not contain this information.
+
+What the tools returned:
+- materials_project: No Materials Project entry matches formula 'Ce0.8Sm0.2O2'. Doped or composite compositions are not indexed - try the parent phase (e.g. CeO2, Sm2O3, Na2CO3).",
+q21,two_tool,query_dataset;materials_project,answer,query_dataset;materials_project,query_dataset,yes,yes,,2,yes,1,0,no,no,2.0694,no,no,answered,2,2663,261,35.0,"What conductivity does the N-SDC composite (SDC with Na2CO3) reach at 600 C in the dataset, and is Na2CO3 thermodynamically stable according to the Materials Project?","The N-SDC composite (SDC with Na2CO3) does not have conductivity data measured at 600 C in the dataset. Regarding the thermodynamic stability of Na2CO3, according to the Materials Project database [Materials Project mp-aaacqirj], Na2CO3 is thermodynamically stable at 0 K with a direct band gap of 5.235 eV. It is on the convex hull, meaning it is stable in its current form. Less stable polymorphs of Na2CO3 have formation energies ranging from -2.0693 eV/atom to -2.0694 eV/atom.
+
+Sources:
+- Materials Project mp-aaacqirj: Na2CO3 P2_1/c (https://materialsproject.org/materials/mp-aaacqirj)",
+q22,two_tool,query_dataset;search_literature,answer,query_dataset,query_dataset,no,yes,,1,yes,1,0,no,no,,no,no,answered,2,2521,242,29.2,"What activation energy does the dataset report for the LN-SDC binary-carbonate composite, and what does the literature say about why binary carbonates raise the conductivity of doped ceria?","[ref11_LN-SDC] LN-SDC ((Li/Na)2CO3-SDC binary carbonate); dopant Sm (fraction 0.2); secondary phase (Li/Na)2CO3 binary carbonate; conductivity 0.31 S/cm at 600 C (ionic (dual O2-/H+)); activation energy 0.45 eV; peak power density 617 mW/cm2 at 600 C; OCV 0.98 V; atmosphere H2/O2
+
+The literature suggests that binary carbonates raise the conductivity of doped ceria by forming a secondary phase that facilitates ion transport. This secondary phase, in this case (Li/Na)2CO3, allows for better conductivity at elevated temperatures. The exact mechanism is not fully understood, but it is believed to involve the formation of a more conductive phase that enhances the overall conductivity of the composite.
+
+Sources:
+- ref11_LN-SDC: Ali, Raza et al. 2018, ACS Appl. Mater. Interfaces (DOI 10.1021/acsami.7b17010) (extracted dataset)",
+q23,two_tool,arrhenius;query_dataset,answer,arrhenius;query_dataset,arrhenius,yes,yes,,3,yes,2,0,no,no,,no,no,answered,2,5092,364,2672.8,"Fit the activation energy for 0.05, 0.09 and 0.15 S/cm measured at 450, 500 and 550 C, and compare it with the activation energy the dataset reports for LN-SDC.","The activation energy for the conductivity values of 0.05, 0.09, and 0.15 S/cm measured at 450, 500, and 550 C is 0.238 eV. [Arrhenius fit] shows an activation energy of 0.53 eV for LN-SDC, which is different from the 0.238 eV calculated from the provided conductivity data. [Arrhenius fit] [ref11_LN-SDC]
+
+Sources:
+- Arrhenius fit: computed from the supplied conductivity data - Ea = 0.6300 eV (60.8 kJ/mol) from 3 points over 450-550 C, ln(sigma*T) vs 1/T, r^2 = 1.0000.
+- ref11_LN-SDC: Ali, Raza et al. 2018, ACS Appl. Mater. Interfaces (DOI 10.1021/acsami.7b17010) (extracted dataset)",
+q24,two_tool,materials_project;search_literature,answer,materials_project;search_literature,materials_project,yes,yes,,2,no,0,0,yes,no,,no,yes,model_not_found,3,6069,268,55.9,"What band gap does the Materials Project report for CeO2, and what does the literature say about electronic conduction in ceria-based electrolytes?","The available tools do not contain this information.
+
+What the tools returned:
+- materials_project: CeO2 (mp-aaaabdws, Fm-3m Cubic): on the convex hull - thermodynamically stable at 0 K; 2.003 eV indirect band gap (DFT/GGA, typically underestimated). 4 entries returned for 'CeO2'.
+- search_literature: 5 passages for 'ceria electronic conduction'; best match [Study on calcium and samarium co-doped ceria based nanocomposite electrolytes, p.4] (score 0.614), corpus size 1701 chunks.",
