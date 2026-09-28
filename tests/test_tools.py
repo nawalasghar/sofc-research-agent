@@ -2,8 +2,10 @@
 
     python -m unittest discover -s tests -v
 
-Tests that need the FAISS index are skipped when it is not reachable; the Materials
-Project test that needs a key is skipped when .env has none. Everything else always runs.
+The dataset tests here and in test_agent.py need paths.dataset_csv (config.yaml) to point
+at dataset.csv from the ceria-carbonate-llm-dataset repository. Tests that need the FAISS
+index are skipped when it is not reachable; the Materials Project test that needs a key is
+skipped when .env has none. Everything else always runs.
 """
 from __future__ import annotations
 
@@ -38,7 +40,7 @@ class TestConfig(unittest.TestCase):
         self.assertEqual(config.get("nope.not.here", "fallback"), "fallback")
 
     def test_configured_paths_exist(self):
-        self.assertTrue(config.rag_root().exists(), f"rag_root missing: {config.rag_root()}")
+        # Only the dataset is required; the literature index is optional (its tests skip).
         self.assertTrue(config.dataset_csv().exists(), f"dataset missing: {config.dataset_csv()}")
 
     def test_dotenv_parsing(self):
@@ -426,6 +428,308 @@ class TestSearchLiterature(unittest.TestCase):
             lit._CACHE.update(saved)
         self.assertFalse(result["ok"])
         self.assertIn("not found", result["error"])
+
+
+class TestSmallModelInputs(unittest.TestCase):
+    """Inputs a 3B model actually produces must still reach the right data."""
+
+    def test_dopant_names_and_acronyms_resolve_to_symbols(self):
+        expected = query_dataset(dopant="Sm", limit=100)["statistics"]["n_matches"]
+        for spelling in ("sm", "Samarium", "SDC", "Sm-doped ceria", "samarium doped"):
+            with self.subTest(spelling):
+                self.assertEqual(query_dataset(dopant=spelling, limit=100)["statistics"]["n_matches"], expected)
+
+    def test_dopant_symbols_match_exactly_not_as_substrings(self):
+        # 'S' must not match 'Sm'; 'Sm+Ca' needs both; 'co-doped' is not cobalt.
+        self.assertEqual(query_dataset(dopant="S")["statistics"]["n_matches"], 0)
+        both = query_dataset(dopant="Sm+Ca", limit=100)["rows"]
+        self.assertTrue(both)
+        self.assertTrue(all("Sm" in r["ceria_dopant"] and "Ca" in r["ceria_dopant"] for r in both))
+        co_doped = query_dataset(dopant="co-doped", limit=100)["rows"]
+        self.assertGreater(len(co_doped), len(both))  # Ba+Sm and La+Sm are co-doped too
+        self.assertTrue(all("+" in r["ceria_dopant"] for r in co_doped))
+
+    def test_no_filter_words_and_real_absences(self):
+        total = query_dataset(limit=100)["statistics"]["n_matches"]
+        for word in ("none", "any", "all"):
+            with self.subTest(word):
+                self.assertEqual(query_dataset(dopant=word, limit=100)["statistics"]["n_matches"], total)
+        self.assertEqual(query_dataset(dopant="Na")["statistics"]["n_matches"], 0)  # sodium, not "n/a"
+        self.assertEqual(query_dataset(dopant="undoped")["statistics"]["n_matches"], 0)
+        self.assertEqual(query_dataset(dopant="Gadolinium")["statistics"]["n_matches"], 0)
+
+    def test_temperature_with_units(self):
+        plain = query_dataset(temperature_C=600)["statistics"]["n_matches"]
+        for spelling in ("600", "600 C", "600C", "about 600 C"):
+            with self.subTest(spelling):
+                self.assertEqual(query_dataset(temperature_C=spelling)["statistics"]["n_matches"], plain)
+
+    def test_empty_carbonate_string_means_no_filter(self):
+        self.assertEqual(
+            query_dataset(carbonate="", limit=100)["statistics"]["n_matches"],
+            query_dataset(limit=100)["statistics"]["n_matches"],
+        )
+
+    def test_arrhenius_accepts_stringified_lists_and_units(self):
+        reference = arrhenius([400, 450, 500, 550, 600], [0.013, 0.028, 0.055, 0.10, 0.17])
+        for temps, sigmas in [
+            ("[400, 450, 500, 550, 600]", "[0.013, 0.028, 0.055, 0.10, 0.17]"),
+            ("400, 450, 500, 550, 600", "0.013, 0.028, 0.055, 0.10, 0.17"),
+            ("400 450 500 550 600", "0.013 0.028 0.055 0.10 0.17"),
+            (["400 C", "450 C", "500 C", "550 C", "600 C"], ["0.013 S/cm", "0.028", "0.055", "0.10", "0.17"]),
+        ]:
+            with self.subTest(temps=temps):
+                result = arrhenius(temps, sigmas)
+                self.assertTrue(result["ok"], result)
+                self.assertEqual(result["activation_energy_eV"], reference["activation_energy_eV"])
+
+    def test_arrhenius_rejects_booleans(self):
+        self.assertFalse(arrhenius([True, 500], [0.1, 0.2])["ok"])
+
+    def test_snippet_window_follows_the_query(self):
+        from sofc_agent.tools.literature import _snippet
+
+        text = " ".join(["filler"] * 200 + ["carbonate", "interface", "conduction"] + ["filler"] * 200)
+        window = _snippet(text, 20, "interface conduction in carbonate composites")
+        self.assertIn("carbonate interface conduction", window)
+        self.assertTrue(window.startswith("... ") and window.endswith(" ..."))
+        self.assertTrue(_snippet(text, 20, "").startswith("filler"))  # no query -> the start
+
+
+class TestToolReviewRegressions(unittest.TestCase):
+    """Cases found in review (ids in the docstrings)."""
+
+    def labels(self, **filters) -> list[str]:
+        return sorted(r["composition_label"].split(" (")[0] for r in query_dataset(limit=100, **filters)["rows"])
+
+    def test_dopant_as_composition_name(self):
+        """dopant-1: composition names matched nothing."""
+        self.assertEqual(self.labels(dopant="LN-SDC"), ["LN-SDC"])
+        self.assertEqual(self.labels(dopant="N-SDC"), ["N-SDC"])  # not LN-SDC or LNK-SDC
+        self.assertEqual(self.labels(dopant="NK-CDC"), ["NK-CDC"])
+        self.assertEqual(self.labels(dopant="LNK-SDC"), ["LNK-SDC"])
+        self.assertEqual(len(self.labels(dopant="CSDC")), 4)
+
+    def test_dopant_as_formula_or_phrase(self):
+        """dopant-1: formulas and phrases resolve to the dopant element."""
+        sm = query_dataset(dopant="Sm", limit=100)["statistics"]["n_matches"]
+        for spelling in ("Ce0.8Sm0.2O1.9", "Sm2O3-doped CeO2", "samaria-doped ceria",
+                         "Sm-doped ceria-carbonate", "20 mol% Sm", "Samarium (Sm)"):
+            with self.subTest(spelling):
+                self.assertEqual(query_dataset(dopant=spelling, limit=100)["statistics"]["n_matches"], sm)
+        everything = query_dataset(limit=100)["statistics"]["n_matches"]
+        for spelling in ("doped ceria", "all dopants", "any dopant"):
+            with self.subTest(spelling):
+                self.assertEqual(query_dataset(dopant=spelling, limit=100)["statistics"]["n_matches"], everything)
+
+    def test_several_dopants_mean_either_unless_co_doped(self):
+        """dopant-1: 'Ca and Sm' used to return only the co-doped rows."""
+        either = query_dataset(dopant="Sm or Ca", limit=100)["statistics"]["n_matches"]
+        self.assertGreater(either, query_dataset(dopant="Sm", limit=100)["statistics"]["n_matches"])
+        for spelling in ("Sm vs Ca", "Ca and Sm", "Sm, Ca"):
+            with self.subTest(spelling):
+                self.assertEqual(query_dataset(dopant=spelling, limit=100)["statistics"]["n_matches"], either)
+        self.assertEqual(query_dataset(dopant=["Sm", "Ca"], limit=100)["statistics"]["n_matches"], either)
+        self.assertEqual(query_dataset(dopant="Sm+Ca", limit=100)["statistics"]["n_matches"], 4)
+
+    def test_unrecognised_dopant_explains_itself(self):
+        result = query_dataset(dopant="xyz-123")
+        self.assertEqual(result["statistics"]["n_matches"], 0)
+        self.assertIn("not an element symbol", result["summary"])
+
+    def test_carbonate_phrases(self):
+        """carb-1: common phrasings matched zero rows."""
+        self.assertEqual(self.labels(dopant="Al", carbonate="no carbonate"), ["10ADC", "20ADC", "30ADC"])
+        self.assertEqual(self.labels(dopant="Al", carbonate="without carbonate"), ["10ADC", "20ADC", "30ADC"])
+        with_carbonate = query_dataset(carbonate="any", limit=100)["statistics"]["n_matches"]
+        for phrase in ("carbonates", "with carbonate", "carbonate composite", "molten carbonate"):
+            with self.subTest(phrase):
+                self.assertEqual(query_dataset(carbonate=phrase, limit=100)["statistics"]["n_matches"], with_carbonate)
+
+    def test_carbonate_systems_compare_by_cations(self):
+        """carb-1: binary carbonates written with '-', '/', '+' matched nothing."""
+        for spelling in ("Na2CO3-K2CO3", "Na2CO3/K2CO3", "Na2CO3 + K2CO3"):
+            with self.subTest(spelling):
+                self.assertEqual(self.labels(carbonate=spelling), ["NK-CDC", "NK-SDC"])
+        for spelling in ("(Li/Na)2CO3", "Li2CO3-Na2CO3", "LiNaCO3"):
+            with self.subTest(spelling):
+                self.assertEqual(self.labels(carbonate=spelling), ["LN-SDC", "SDC-LiNaCO3"])
+        self.assertEqual(self.labels(carbonate="lithium carbonate"), ["L-SDC"])
+        self.assertEqual(
+            query_dataset(carbonate="sodium carbonate", limit=100)["statistics"]["n_matches"],
+            query_dataset(carbonate="Na2CO3", limit=100)["statistics"]["n_matches"],
+        )
+        # a bare cation means "contains"; it no longer matches words such as "implicit"
+        self.assertEqual(self.labels(carbonate="Li"), ["L-SDC", "LK-SDC", "LN-SDC", "LNK-SDC", "SDC-LiNaCO3"])
+        self.assertEqual(len(self.labels(carbonate="binary")), 5)
+
+    def test_temperature_in_kelvin_and_ranges(self):
+        """temp-1: '873 K' filtered at 873 C; ranges kept only the first number."""
+        at_600 = query_dataset(temperature_C=600, limit=100)["statistics"]["n_matches"]
+        self.assertEqual(query_dataset(temperature_C="873 K", limit=100)["statistics"]["n_matches"], at_600)
+        rows = query_dataset(temperature_C="500-600", limit=100)["rows"]
+        temps = {r["conductivity_temp_C"] for r in rows}
+        self.assertEqual(temps, {500.0, 550.0, 600.0})
+        self.assertEqual(
+            query_dataset(temperature_C=[500, 600], limit=100)["statistics"]["n_matches"], len(rows)
+        )
+        self.assertTrue(all(r["conductivity_temp_C"] >= 550 for r in
+                            query_dataset(temperature_C="above 550", limit=100)["rows"]))
+        self.assertFalse(query_dataset(temperature_C="400, 500 and 600")["ok"])
+        self.assertIn("kelvin", query_dataset(temperature_C=1073)["summary"])
+
+    def test_peak_power_temperature_field(self):
+        """temp-2: temperature_field was stripped, so peak-power questions lost rows."""
+        from sofc_agent.tools import TOOL_SCHEMAS
+
+        schema = next(s for s in TOOL_SCHEMAS if s["function"]["name"] == "query_dataset")
+        self.assertIn("temperature_field", schema["function"]["parameters"]["properties"])
+        result = query_dataset(temperature_C=550, temperature_field="pmax_temp_C")
+        self.assertEqual(result["statistics"]["best_pmax"]["pmax_mW_cm2"], 1180.0)
+        self.assertGreaterEqual(result["statistics"]["n_matches"], 8)
+
+    def test_arrhenius_scientific_notation_is_read_whole(self):
+        """arr-1 (tools): '5.2 x 10^-3' was read as 5.2 and gave a wrong, cited Ea."""
+        reference = arrhenius([400, 450, 500, 550, 600], [0.0052, 0.011, 0.021, 0.036, 0.058])
+        times, minus = "×", "⁻"
+        for sigmas in (
+            ["5.2 x 10^-3", "1.1 x 10^-2", "2.1 x 10^-2", "3.6 x 10^-2", "5.8 x 10^-2"],
+            [f"5.2{times}10{minus}³", f"1.1{times}10{minus}²", f"2.1{times}10{minus}²",
+             f"3.6{times}10{minus}²", f"5.8{times}10{minus}²"],
+            ["5.2e-3", "1.1e-2", "2.1e-2", "3.6e-2", "5.8e-2"],
+            "5.2 x 10^-3, 1.1 x 10^-2, 2.1 x 10^-2, 3.6 x 10^-2, 5.8 x 10^-2",
+            ["5.2 mS/cm", "11 mS/cm", "21 mS/cm", "36 mS/cm", "58 mS/cm"],
+        ):
+            with self.subTest(sigmas=str(sigmas)[:40]):
+                result = arrhenius([400, 450, 500, 550, 600], sigmas)
+                self.assertTrue(result["ok"], result)
+                self.assertAlmostEqual(result["activation_energy_eV"], reference["activation_energy_eV"], places=4)
+
+    def test_arrhenius_unit_on_the_item_wins(self):
+        """arr-1 (tools): ['773 K', ...] with the unit argument omitted was read as Celsius."""
+        in_kelvin = arrhenius([773, 823, 873], [0.02, 0.05, 0.11], temperature_unit="K")
+        self.assertAlmostEqual(
+            arrhenius(["773 K", "823 K", "873 K"], [0.02, 0.05, 0.11])["activation_energy_eV"],
+            in_kelvin["activation_energy_eV"], places=6,
+        )
+        self.assertAlmostEqual(
+            arrhenius("773 K 823 K 873 K", "0.02 0.05 0.11")["activation_energy_eV"],
+            in_kelvin["activation_energy_eV"], places=6,
+        )
+
+    def test_arrhenius_rejects_partial_numbers(self):
+        for bad in (["5.2 x", "1.1"], ["0.013 S/cmm", "0.02"], [[0.01], [0.02]], [{"a": 1}, 0.02]):
+            with self.subTest(bad=bad):
+                self.assertFalse(arrhenius([500, 600], bad)["ok"])
+        error = arrhenius(["-300", "600"], [0.01, 0.02])["error"]
+        self.assertIn("-300", error)  # the parsed value, not one character of the string
+
+    def test_literature_titles_are_unescaped(self):
+        from sofc_agent.tools.literature import _short_title
+
+        self.assertEqual(_short_title("SOFCs (300-600&#160;&#176;C)"), "SOFCs (300-600 °C)".replace(" ", " "))
+
+    def test_bug_inside_a_tool_is_not_blamed_on_the_arguments(self):
+        from sofc_agent import tools as tools_mod
+
+        def buggy(query: str) -> dict:
+            raise TypeError("internal bug")
+
+        with mock.patch.dict(tools_mod.TOOLS, {"search_literature": buggy}):
+            result = call_tool("search_literature", {"query": "x"})
+            missing = call_tool("search_literature", {})
+        self.assertEqual(result["error_code"], "tool_exception")
+        self.assertNotIn("bad arguments", result["error"])
+        self.assertIn("bad arguments", missing["error"])
+
+
+class TestRoundTwoToolRegressions(unittest.TestCase):
+    def n(self, **filters) -> int:
+        return query_dataset(limit=100, **filters)["statistics"]["n_matches"]
+
+    def test_a_list_unit_applies_to_the_whole_list(self):
+        """parsing/F2: '773, 823, 873 K' gave a negative Ea (only the last item was K)."""
+        reference = arrhenius([773, 823, 873], [0.02, 0.05, 0.11], temperature_unit="K")["activation_energy_eV"]
+        for temps in ("773, 823, 873 K", "773 823 873 K", "773 K, 823, 873", ["773", "823", "873 K"]):
+            with self.subTest(temps=temps):
+                self.assertAlmostEqual(arrhenius(temps, [0.02, 0.05, 0.11])["activation_energy_eV"], reference, places=6)
+        q11 = arrhenius([400, 450, 500, 550, 600], [0.013, 0.028, 0.055, 0.10, 0.17])["activation_energy_eV"]
+        self.assertAlmostEqual(
+            arrhenius([400, 450, 500, 550, 600], "13, 28, 55, 100, 170 mS/cm")["activation_energy_eV"], q11, places=6
+        )
+        self.assertFalse(arrhenius(["773", "823 K", "873"], [0.02, 0.05, 0.11])["ok"])  # ambiguous
+
+    def test_formulas_and_descriptions_are_not_matched_inside_labels(self):
+        """parsing/F3: 'Ce0.8Sm0.2O2' matched one row by substring of its description."""
+        sm = self.n(dopant="Sm")
+        for spelling in ("Ce0.8Sm0.2O2", "Ce0.8Sm0.2O2-delta", "Ce0.8Sm0.2", "SDC + Na2CO3", "SDC nanocomposite"):
+            with self.subTest(spelling):
+                self.assertEqual(self.n(dopant=spelling), sm)
+        self.assertEqual(self.n(dopant="Ba-SDC"), 1)
+        self.assertEqual(self.n(dopant="Sm+Ca in ceria"), 4)
+
+    def test_carbonate_lists_and_phrases(self):
+        """parsing/F4."""
+        def labels(**filters):
+            return sorted(r["composition_label"].split(" (")[0] for r in query_dataset(limit=100, **filters)["rows"])
+
+        either = labels(dopant="Sm", carbonate="Na2CO3 or Li2CO3", temperature_C=600)
+        self.assertEqual(either, ["BSDC-carbonate [Sample-3]", "L-SDC", "N-SDC"])
+        self.assertEqual(labels(dopant="Sm", carbonate=["Na2CO3", "Li2CO3"], temperature_C=600), either)
+        self.assertEqual(labels(carbonate="(Li,Na)2CO3"), ["LN-SDC", "SDC-LiNaCO3"])
+        self.assertEqual(labels(carbonate="(Li0.52Na0.48)2CO3"), ["LN-SDC", "SDC-LiNaCO3"])
+        self.assertEqual(labels(carbonate="Na2CO3 and K2CO3"), ["NK-CDC", "NK-SDC"])
+        self.assertEqual(self.n(dopant="Sm", carbonate="ceria-carbonate composite", temperature_C=600), 8)
+        self.assertEqual(self.n(carbonate="no carbonate phase"), self.n(carbonate="none"))
+        self.assertEqual(self.n(carbonate="lithium"), self.n(carbonate="Li"))
+
+    def test_temperature_phrasings(self):
+        """parsing/F5."""
+        at_600 = self.n(dopant="Sm", temperature_C=600)
+        for spelling in ("600 +/- 25", "600 ± 25", "600 C plus or minus 25", "600 C (873 K)"):
+            with self.subTest(spelling):
+                self.assertEqual(self.n(dopant="Sm", temperature_C=spelling), at_600)
+        at_least_550 = self.n(dopant="Sm", temperature_C="above 549")
+        for spelling in ("550 or higher", "≥ 550", "550+", "at least 550"):
+            with self.subTest(spelling):
+                self.assertEqual(self.n(dopant="Sm", temperature_C=spelling), at_least_550)
+
+    def test_dopant_lists_co_doping_and_bracketed_ids(self):
+        """parsing/F6."""
+        self.assertEqual(self.n(dopant="LN-SDC, NK-SDC"), 2)
+        self.assertEqual(self.n(dopant="LN-SDC or N-SDC"), 2)
+        self.assertEqual(self.n(dopant=["LN-SDC", "N-SDC"]), 2)
+        self.assertEqual(self.n(dopant="co-doped ceria"), 8)
+        self.assertEqual(self.n(paper_id="[ref11_LN-SDC]"), 7)
+        self.assertEqual(self.n(dopant="In-doped ceria"), 0)  # indium: English stopwords are lower case only
+
+
+class TestRoundThreeToolRegressions(unittest.TestCase):
+    def labels(self, **filters):
+        return sorted(r["composition_label"].split(" (")[0] for r in query_dataset(limit=100, **filters)["rows"])
+
+    def test_composition_name_inside_a_phrase(self):
+        """F2: 'the LNK-SDC composite' matched nothing and the note suggested LN-SDC."""
+        self.assertEqual(self.labels(dopant="LNK-SDC composite"), ["LNK-SDC"])
+        self.assertEqual(self.labels(dopant="the LNK-SDC composite"), ["LNK-SDC"])
+        self.assertEqual(self.labels(dopant="LN-SDC binary-carbonate composite"), ["LN-SDC"])
+        self.assertEqual(self.labels(dopant="N-SDC composite"), ["N-SDC"])
+        self.assertEqual(len(self.labels(dopant="SDC + Na2CO3")), 21)
+        self.assertNotIn("LN-SDC", query_dataset(dopant="xyz-123")["summary"])
+
+    def test_paper_id_none_means_no_filter(self):
+        everything = query_dataset(limit=100)["statistics"]["n_matches"]
+        for value in ("none", "null", "any"):
+            with self.subTest(value):
+                self.assertEqual(query_dataset(paper_id=value, limit=100)["statistics"]["n_matches"], everything)
+
+    def test_s_cm_minus_one_is_read_as_a_unit(self):
+        from sofc_agent.numbers import quantities
+
+        for unit in ("S cm-1", "S cm^-1", "S cm⁻¹", "S·cm⁻¹", "Scm-1", "mS cm-1"):
+            with self.subTest(unit):
+                self.assertEqual([k for _, k, _ in quantities(f"0.013 {unit} at 400 C")], ["conductivity", "temperature"])
+        self.assertTrue(arrhenius([400, 600], ["0.013 S cm-1", "0.17 S cm-1"])["ok"])
 
 
 class TestRegistry(unittest.TestCase):

@@ -10,24 +10,60 @@ pays a few seconds of model load and later calls are fast.
 """
 from __future__ import annotations
 
+import html
 import json
+import re
 from typing import Any
 
 from .. import config
 
 _CACHE: dict[str, Any] = {}
 
+_STOPWORDS = frozenset(
+    "about according also and are does doing done for from has have how into its less more "
+    "much not than that the their them then there these they this those was were what when "
+    "where which while who why with would".split()
+)
+
 
 def _short_title(title: str, limit: int = 90) -> str:
-    text = (title or "unknown").strip().replace("\n", " ")
+    # Titles scraped from PDF metadata can carry HTML entities ("300-600&#160;&#176;C").
+    text = re.sub(r"\s+", " ", html.unescape(title or "unknown")).strip()
     return text if len(text) <= limit else text[: limit - 3] + "..."
 
 
-def _snippet(text: str, n_words: int) -> str:
+def _stem(word: str) -> str:
+    """Crude 5-letter stem so 'conduct' matches 'conductivity' and 'conduction'."""
+    return word[:5]
+
+
+def _query_stems(query: str) -> set[str]:
+    words = re.findall(r"[a-z0-9]+", query.lower())
+    return {_stem(w) for w in words if len(w) > 2 and w not in _STOPWORDS}
+
+
+def _snippet(text: str, n_words: int, query: str = "") -> str:
+    """Return the ``n_words`` window of ``text`` that mentions the query terms most.
+
+    A 500-word chunk often opens with an unrelated paragraph, and a small model reading
+    only the first 60 words would miss the sentence that made the chunk match. Ties go
+    to the earliest window, so a query with no lexical overlap falls back to the start.
+    """
     words = text.split()
     if len(words) <= n_words:
         return text
-    return " ".join(words[:n_words]) + " ..."
+    stems = _query_stems(query)
+    start = 0
+    if stems:
+        hits = [1 if _stem(re.sub(r"[^a-z0-9]", "", w.lower())) in stems else 0 for w in words]
+        window = sum(hits[:n_words])
+        best = window
+        for i in range(1, len(words) - n_words + 1):
+            window += hits[i + n_words - 1] - hits[i - 1]
+            if window > best:
+                best, start = window, i
+    end = start + n_words
+    return ("... " if start > 0 else "") + " ".join(words[start:end]) + (" ..." if end < len(words) else "")
 
 
 def _load() -> tuple[Any, list[dict], Any]:
@@ -70,6 +106,8 @@ def search_literature(query: str, k: int | None = None) -> dict:
         A JSON-serialisable dict with ``ok``, a one-line ``summary``, and a ``passages``
         list carrying title, page, citation string and a text snippet for each hit.
     """
+    if query is not None and not isinstance(query, str):
+        return {"ok": False, "tool": "search_literature", "error": f"query must be a string, got {type(query).__name__}"}
     query = (query or "").strip()
     if not query:
         return {"ok": False, "tool": "search_literature", "error": "query must not be empty"}
@@ -85,7 +123,7 @@ def search_literature(query: str, k: int | None = None) -> dict:
     try:
         index, meta, model = _load()
     except Exception as exc:
-        return {"ok": False, "tool": "search_literature", "error": str(exc)}
+        return {"ok": False, "tool": "search_literature", "error_code": "index_unavailable", "error": str(exc)}
 
     vector = model.encode([query], normalize_embeddings=True, convert_to_numpy=True).astype("float32")
     scores, ids = index.search(vector, k_eff)
@@ -107,7 +145,7 @@ def search_literature(query: str, k: int | None = None) -> dict:
             "doi": row.get("doi") or None,
             "year": row.get("year") or None,
             "open_access": row.get("open_access") or None,
-            "snippet": _snippet(row.get("text", ""), n_words),
+            "snippet": _snippet(row.get("text", ""), n_words, query),
         })
 
     if not passages:

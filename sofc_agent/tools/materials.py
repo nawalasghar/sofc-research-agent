@@ -150,6 +150,8 @@ def materials_project(formula: str, limit: int | None = None) -> dict:
         A JSON-serialisable dict with ``ok``, a one-line ``summary``, and - when a match is
         found - ``most_stable`` (stability, band gap, symmetry, density) plus ``polymorphs``.
     """
+    if formula is not None and not isinstance(formula, str):
+        return {"ok": False, "tool": "materials_project", "error": f"formula must be a string, got {type(formula).__name__}"}
     formula = (formula or "").strip()
     if not formula:
         return {"ok": False, "tool": "materials_project", "error": "formula must not be empty"}

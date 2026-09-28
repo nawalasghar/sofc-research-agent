@@ -107,7 +107,7 @@ def demo_arrhenius(raw: bool) -> None:
     temps = [400.0, 450.0, 500.0, 550.0, 600.0]
     sigmas = synthetic_series(ea_true, 1.0e4, temps)
 
-    case(f"round-trip check: data generated with Ea = {ea_true} eV, then fitted")
+    case(f"round-trip check: data built from Ea = {ea_true} eV, then fitted")
     result = arrhenius(temperatures=temps, conductivities=sigmas)
     dump(result, raw)
     print(f"\n    recovered {result['activation_energy_eV']} eV vs true {ea_true} eV "

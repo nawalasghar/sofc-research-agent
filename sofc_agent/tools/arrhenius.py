@@ -12,8 +12,12 @@ closed-form ordinary least squares, so this tool needs nothing beyond the standa
 """
 from __future__ import annotations
 
+import json
 import math
+import re
 from typing import Any, Sequence
+
+from ..numbers import _UNIT_AFTER, CONDUCTIVITY_FACTORS, NUMBER, normalize, parse_quantity
 
 # CODATA 2018 Boltzmann constant in eV/K, and the eV -> kJ/mol conversion.
 KB_EV_PER_K = 8.617333262e-5
@@ -36,16 +40,79 @@ _UNIT_ALIASES = {
 }
 
 
-def _floats(values: Any, label: str) -> list[float]:
-    """Coerce a sequence to floats, tolerating numeric strings from a model's JSON."""
-    if values is None or isinstance(values, (str, bytes)) or not isinstance(values, Sequence):
+# One list item written as text: a number (any notation) and an optional unit.
+_ITEM = re.compile(rf"(?:{NUMBER.pattern})(?:{_UNIT_AFTER.pattern})?")
+
+
+def _split_text_list(text: str) -> list[Any]:
+    """Parse '[400, 450]', '400, 450', '400 450' or '773 K 823 K' - a small model sends all of them."""
+    text = normalize(text).strip()
+    try:
+        parsed = json.loads(text)
+    except ValueError:
+        parsed = None
+    if isinstance(parsed, list):
+        return parsed
+    body = text.strip("[]() ")
+    parts = [p.strip() for p in re.split(r"[,;]", body) if p.strip()]
+    if len(parts) == 1:  # no separators: pick the items out one by one
+        parts = [m.group().strip() for m in _ITEM.finditer(body)] or parts
+    return parts
+
+
+def _as_list(values: Any, label: str) -> list[Any]:
+    if isinstance(values, bytes):
+        values = values.decode("utf-8", errors="replace")
+    if isinstance(values, str):
+        values = _split_text_list(values)
+    if values is None or isinstance(values, dict) or not isinstance(values, Sequence):
         raise ValueError(f"{label} must be a list of numbers, got {type(values).__name__}")
-    out: list[float] = []
-    for i, raw in enumerate(values):
+    return list(values)
+
+
+def _parse_items(values: Any, label: str, kind: str) -> list[tuple[float, str | None]]:
+    parsed = []
+    for i, item in enumerate(_as_list(values, label)):
         try:
-            out.append(float(str(raw).strip()))
-        except (TypeError, ValueError):
-            raise ValueError(f"{label}[{i}] is not a number: {raw!r}") from None
+            parsed.append(parse_quantity(item, kind))
+        except ValueError:
+            raise ValueError(f"{label}[{i}] is not a {kind}: {item!r}") from None
+    return parsed
+
+
+def _list_units(units: list[str | None], label: str) -> list[str | None]:
+    """A unit on every item, or on none, is clear. A unit written once, after the last
+    item ("773, 823, 873 K") or on the first ("773 K, 823, 873"), belongs to the whole
+    list. Any other mix is ambiguous and refused rather than guessed."""
+    if all(u is None for u in units) or all(u is not None for u in units):
+        return units
+    written = [u for u in units if u is not None]
+    if len(written) == 1 and (units[-1] is not None or units[0] is not None):
+        return [written[0]] * len(units)
+    raise ValueError(f"{label}: write the unit on every value, or once for the whole list")
+
+
+def parse_temperatures(values: Any, default_unit: str) -> tuple[list[float], list[float]]:
+    """(values as written, values in kelvin). A unit written on the items ("773 K", or
+    "773, 823, 873 K") overrides ``default_unit``, so a model that forgets
+    temperature_unit="K" still gets the right fit."""
+    parsed = _parse_items(values, "temperatures", "temperature")
+    units = _list_units([u for _, u in parsed], "temperatures")
+    written = [value for value, _ in parsed]
+    kelvin = [v + 273.15 if (u or default_unit) == "C" else v for v, u in zip(written, units)]
+    return written, kelvin
+
+
+def parse_conductivities(values: Any) -> list[float]:
+    """Conductivities in S/cm; items may carry S/cm, S cm-1, mS/cm or S/m."""
+    parsed = _parse_items(values, "conductivities", "conductivity")
+    written_units = [u for _, u in parsed]
+    units = _list_units(written_units, "conductivities")
+    out = []
+    for (value, own), unit in zip(parsed, units):
+        # parse_quantity already converted items that carried a unit; a unit carried over
+        # from the end of the list still has to be applied.
+        out.append(value * CONDUCTIVITY_FACTORS[unit] if own is None and unit else value)
     return out
 
 
@@ -99,8 +166,8 @@ def arrhenius(
         }
 
     try:
-        temps = _floats(temperatures, "temperatures")
-        sigmas = _floats(conductivities, "conductivities")
+        temps, temps_k = parse_temperatures(temperatures, unit)
+        sigmas = parse_conductivities(conductivities)
     except ValueError as exc:
         return {"ok": False, "tool": "arrhenius", "error": str(exc)}
 
@@ -120,14 +187,12 @@ def arrhenius(
             "error": f"need at least 2 points to fit a slope, got {len(temps)}",
         }
 
-    temps_k = [t + 273.15 for t in temps] if unit == "C" else list(temps)
-
     for i, (t_k, sigma) in enumerate(zip(temps_k, sigmas)):
         if t_k <= 0:
             return {
                 "ok": False,
                 "tool": "arrhenius",
-                "error": f"temperatures[{i}] is {temperatures[i]!r} ({t_k:.2f} K); must be above 0 K",
+                "error": f"temperatures[{i}] is {temps[i]:g} ({t_k:.2f} K); must be above 0 K",
             }
         if sigma <= 0:
             return {

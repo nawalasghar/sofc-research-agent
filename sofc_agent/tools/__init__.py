@@ -5,8 +5,8 @@ JSON-serialisable dict containing ``ok``, a one-line ``summary`` for the model t
 the structured detail. Tools report problems in the return value instead of raising, so a
 failed call is something the agent can read and recover from.
 
-``TOOL_SCHEMAS`` is the JSON-schema function list in the shape Ollama expects, passed straight to
-Ollama's ``tools`` parameter; ``call_tool`` dispatches what the model asks for.
+``TOOL_SCHEMAS`` is the JSON-schema function list in the shape Ollama's ``tools`` parameter
+expects; ``call_tool`` dispatches what the model asks for.
 """
 from __future__ import annotations
 
@@ -77,26 +77,35 @@ TOOL_SCHEMAS: list[dict] = [
                 "properties": {
                     "dopant": {
                         "type": "string",
-                        "description": "Ceria dopant element, e.g. 'Sm', 'Ca', 'Al', 'Ba'. Also matches co-doped entries.",
+                        "description": (
+                            "Ceria dopant element, e.g. 'Sm', 'Ca', 'Al', 'Ba' (also matches "
+                            "co-doped entries), or a composition name such as 'LN-SDC'. Omit it "
+                            "to include every composition."
+                        ),
                     },
                     "carbonate": {
                         "type": "string",
                         "description": (
-                            "'any' for carbonate composites, 'none' for single-phase oxides, or a "
-                            "specific phase such as 'Na2CO3', 'Li2CO3' or 'ternary'."
+                            "Omit it to include every composition. Otherwise 'any' for carbonate "
+                            "composites, 'none' only for oxides without carbonate, a carbonate "
+                            "such as 'Na2CO3' or '(Li/Na)2CO3', or 'binary'/'ternary'."
                         ),
                     },
                     "temperature_C": {
                         "type": "number",
                         "description": "Measurement temperature in Celsius, matched within +/-25 C.",
                     },
+                    "temperature_field": {
+                        "type": "string",
+                        "enum": ["conductivity_temp_C", "pmax_temp_C"],
+                        "description": (
+                            "What temperature_C refers to: the conductivity measurement "
+                            "(default) or the peak power density measurement."
+                        ),
+                    },
                     "paper_id": {
                         "type": "string",
                         "description": "Restrict to one source paper, e.g. 'ref11_LN-SDC'.",
-                    },
-                    "limit": {
-                        "type": "integer",
-                        "description": "Maximum rows to return (default 25).",
                     },
                 },
                 "required": [],
@@ -162,10 +171,6 @@ TOOL_SCHEMAS: list[dict] = [
                         "type": "string",
                         "description": "Chemical formula, e.g. 'CeO2', 'Sm2O3', 'Na2CO3'.",
                     },
-                    "limit": {
-                        "type": "integer",
-                        "description": "How many polymorphs to fetch before picking the most stable (default 10).",
-                    },
                 },
                 "required": ["formula"],
             },
@@ -189,16 +194,18 @@ def call_tool(name: str, arguments: dict[str, Any] | None = None) -> dict:
         }
 
     arguments = dict(arguments or {})
-    accepted = set(inspect.signature(func).parameters)
-    ignored = sorted(set(arguments) - accepted)
-    kwargs = {key: val for key, val in arguments.items() if key in accepted}
+    signature = inspect.signature(func)
+    ignored = sorted(set(arguments) - set(signature.parameters))
+    kwargs = {key: val for key, val in arguments.items() if key in signature.parameters}
 
-    try:
-        result = func(**kwargs)
-    except TypeError as exc:  # missing required argument
+    try:  # checked before the call, so a TypeError inside a tool is not blamed on the caller
+        bound = signature.bind(**kwargs)
+    except TypeError as exc:
         return {"ok": False, "tool": name, "error": f"bad arguments for {name}: {exc}"}
+    try:
+        result = func(*bound.args, **bound.kwargs)
     except Exception as exc:  # a tool bug should not kill the agent loop
-        return {"ok": False, "tool": name, "error": f"{type(exc).__name__}: {exc}"}
+        return {"ok": False, "tool": name, "error_code": "tool_exception", "error": f"{type(exc).__name__}: {exc}"}
 
     if ignored:
         result = dict(result)
