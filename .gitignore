@@ -1,18 +1,29 @@
-# Secrets — never commit API keys
+# Secrets - never commit API keys (.env.example is the committed template)
 .env
+.env.*
+!.env.example
 
 # Local environments and caches
 .venv/
+venv/
+env/
 __pycache__/
 *.pyc
 .cache/
 .pytest_cache/
 
-# Large or derived artefacts pulled in from other projects
+# Search index and papers live in the sofc-rag project; never copy them in
 index/
 papers/
+*.faiss
+*.index
+chunks.jsonl
 *.pdf
 *.docx
+
+# Evaluation scratch (results.csv, summary.md, traces.jsonl and run_meta.json are kept)
+*.bak
+*.tmp
 
 # OS noise
 .DS_Store

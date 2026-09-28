@@ -1,4 +1,4 @@
-# Tooling layer of the research agent.
+# Python dependencies. The model itself runs in Ollama (https://ollama.com), not pip.
 # faiss-cpu + sentence-transformers are only needed by the search_literature tool;
 # they are already present in the sofc-rag environment this project reuses.
 faiss-cpu>=1.8
