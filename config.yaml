@@ -14,7 +14,7 @@ literature:
   embed_model: "sentence-transformers/all-MiniLM-L6-v2"
   default_k: 5
   max_k: 20
-  snippet_words: 60
+  snippet_words: 90
 
 dataset:
   # A measurement at 598 C answers a question about 600 C.
@@ -34,4 +34,23 @@ agent:
   model: "qwen2.5:3b-instruct"
   ollama_url: "http://127.0.0.1:11434"
   temperature: 0.0
+  seed: 42
   num_ctx: 8192
+  # Cap on generated tokens per model turn; answers are asked to be <= 5 sentences.
+  num_predict: 400
+  # CPU inference is slow; a long first call includes loading the model into memory.
+  timeout_s: 600
+  keep_alive: "30m"
+  max_tool_calls: 5
+  # Passages scoring below this never reach the model. Measured on this corpus:
+  # on-topic questions score >= 0.425, off-topic ones (cooking, sport, history) <= 0.34.
+  min_passage_score: 0.40
+  # And unless the best passage reaches this, the search found nothing on the question.
+  # Held-out check (24 queries, none from the evaluation): the best passage of 12 on-topic
+  # queries scored 0.565-0.766; of 12 near-domain off-topic ones 0.298-0.606. 0.50 rejects
+  # 7 of the 12 near-domain queries and none of the on-topic ones. The ranges overlap, so
+  # the remaining near-domain questions rely on the model to decline.
+  min_top_passage_score: 0.50
+  # Dataset rows with measured values shown to the model per call (rows without any
+  # measurement are listed by name only). 20 covers every measured row in the dataset.
+  max_rows_in_prompt: 20
